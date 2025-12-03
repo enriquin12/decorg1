@@ -1,4 +1,4 @@
-const CACHE_NAME = 'minha-carteira-v4';
+const CACHE_NAME = 'minha-carteira-v5';
 const URLS_TO_CACHE = [
   '/decorg1/',          // página inicial (ajuste conforme seu repositório)
   '/decorg1/index.html',
