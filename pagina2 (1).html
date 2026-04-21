@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Carteira</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Carteira" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f2f2f7;
+      --white: #ffffff;
+      --text-primary: #000000;
+      --text-secondary: #6c6c70;
+      --text-tertiary: #8e8e93;
+      --separator: #c6c6c8;
+      --blue: #007aff;
+      --tab-active: #000000;
+      --tab-inactive: #8e8e93;
+      --qr-blue-bg: #e8f0ff;
+      --qr-blue-text: #1c4fd8;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      -webkit-user-select: none;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    .screen {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      height: 100dvh;
+    }
+
+    /* STATUS BAR */
+    .status-bar-space {
+      height: env(safe-area-inset-top, 44px);
+      background: var(--white);
+      flex-shrink: 0;
+    }
+
+    /* NAV BAR */
+    .nav-bar {
+      background: var(--white);
+      border-bottom: 0.5px solid var(--separator);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      height: 44px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .nav-back {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      color: var(--blue);
+      font-size: 17px;
+      padding: 8px 0;
+      min-width: 44px;
+      min-height: 44px;
+      background: none;
+      border: none;
+    }
+
+    .nav-back svg {
+      width: 12px;
+      height: 20px;
+      stroke: var(--blue);
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .nav-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.4px;
+      pointer-events: none;
+    }
+
+    .nav-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      min-height: 36px;
+      color: var(--blue);
+    }
+
+    .nav-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--blue);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* TABS (Frente / Verso / QR Code) */
+    .segment-bar {
+      background: var(--white);
+      display: flex;
+      border-bottom: 0.5px solid var(--separator);
+      flex-shrink: 0;
+      padding: 0 16px;
+    }
+
+    .seg-tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px 4px;
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+      letter-spacing: -0.1px;
+    }
+
+    .seg-tab.active {
+      color: var(--text-primary);
+      font-weight: 600;
+      border-bottom-color: var(--text-primary);
+    }
+
+    /* CONTENT AREA */
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    /* CARROSSEL */
+    .carousel-outer {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .carousel-track {
+      display: flex;
+      height: 100%;
+      transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: transform;
+    }
+
+    .carousel-slide {
+      flex-shrink: 0;
+      width: 100vw;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px;
+    }
+
+    /* Imagem da carteirinha */
+    .card-img {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 1px 4px rgba(0,0,0,0.1);
+      display: block;
+      object-fit: contain;
+      /* placeholder cinza enquanto imagem não existe */
+      background: #dde2ea;
+      min-height: 180px;
+      min-width: 200px;
+    }
+
+    /* SLIDE QR CODE */
+    .qr-slide-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      width: 100%;
+      max-width: 340px;
+    }
+
+    .qr-box {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .qr-image {
+      width: 220px;
+      height: 220px;
+      border-radius: 8px;
+      display: block;
+      object-fit: contain;
+      background: #eee;
+    }
+
+    /* Barra de progresso do QR */
+    .qr-timer-bar {
+      width: 100%;
+      height: 3px;
+      background: #e0e0e0;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .qr-timer-fill {
+      height: 100%;
+      background: var(--text-primary);
+      border-radius: 2px;
+      transition: width 1s linear;
+    }
+
+    .qr-timer-text {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 400;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Info azul abaixo do QR */
+    .qr-info {
+      background: var(--qr-blue-bg);
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .qr-info-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      color: var(--qr-blue-text);
+    }
+
+    .qr-info-icon svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--qr-blue-text);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .qr-info-text {
+      font-size: 13px;
+      color: var(--qr-blue-text);
+      line-height: 1.4;
+    }
+
+    /* TIMESTAMP */
+    .timestamp-bar {
+      padding: 8px 16px 10px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-secondary);
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+
+    /* TAB BAR */
+    .tab-bar {
+      background: rgba(242,242,247,0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 0.5px solid var(--separator);
+      display: flex;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      flex-shrink: 0;
+    }
+
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 0 4px;
+      gap: 3px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .tab-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .tab-label {
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .tab-item.active .tab-label { color: #000; }
+    .tab-item.active svg { stroke: #000; fill: none; }
+
+    .tab-item:not(.active) .tab-label { color: var(--tab-inactive); }
+    .tab-item:not(.active) svg { stroke: var(--tab-inactive); fill: none; }
+  </style>
+</head>
+<body>
+<div class="screen">
+
+  <!-- Status bar -->
+  <div class="status-bar-space"></div>
+
+  <!-- Nav Bar -->
+  <nav class="nav-bar">
+    <button class="nav-back" id="btn-back" aria-label="Voltar">
+      <svg viewBox="0 0 12 20"><polyline points="10 2 2 10 10 18"/></svg>
+    </button>
+    <span class="nav-title">Carteira</span>
+    <div class="nav-actions">
+      <!-- Ícone compartilhar -->
+      <button class="nav-btn" aria-label="Compartilhar">
+        <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      </button>
+      <!-- Ícone três pontos -->
+      <button class="nav-btn" aria-label="Mais opções">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5" fill="var(--blue)" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="var(--blue)" stroke="none"/><circle cx="12" cy="19" r="1.5" fill="var(--blue)" stroke="none"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Segment tabs -->
+  <div class="segment-bar" id="segment-bar">
+    <div class="seg-tab active" data-index="0">Frente</div>
+    <div class="seg-tab" data-index="1">Verso</div>
+    <div class="seg-tab" data-index="2">QR Code</div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+    <div class="carousel-outer" id="carousel-outer">
+      <div class="carousel-track" id="carousel-track">
+
+        <!-- Slide 0: Frente -->
+        <div class="carousel-slide">
+          <img class="card-img" src="frente.jpeg" alt="Frente da carteirinha" draggable="false" />
+        </div>
+
+        <!-- Slide 1: Verso -->
+        <div class="carousel-slide">
+          <img class="card-img" src="verso.jpeg" alt="Verso da carteirinha" draggable="false" />
+        </div>
+
+        <!-- Slide 2: QR Code -->
+        <div class="carousel-slide">
+          <div class="qr-slide-inner">
+            <div class="qr-box">
+              <img class="qr-image" src="qrcode.jpeg" alt="QR Code" draggable="false" />
+              <div class="qr-timer-bar">
+                <div class="qr-timer-fill" id="qr-fill" style="width:100%"></div>
+              </div>
+              <div class="qr-timer-text" id="qr-timer">00 : 30</div>
+            </div>
+            <div class="qr-info">
+              <div class="qr-info-icon">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <div class="qr-info-text">Utilize esse QR Code para validar os dados da carteira.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Timestamp -->
+    <div class="timestamp-bar">
+      Última atualização em: <span id="auth-timestamp">carregando...</span>
+    </div>
+  </div>
+
+  <!-- Tab Bar -->
+  <nav class="tab-bar">
+    <div class="tab-item active">
+      <div class="tab-icon">
+        <svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="5" width="20" height="14" rx="2"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <span class="tab-label">Carteira</span>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon">
+        <svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+        </svg>
+      </div>
+      <span class="tab-label">Serviços</span>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon">
+        <svg viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </div>
+      <span class="tab-label">Opções</span>
+    </div>
+  </nav>
+
+</div>
+
+<script>
+  // ── Timestamp ──────────────────────────────────────────────────────────────
+  function two(n) { return n < 10 ? '0' + n : '' + n; }
+  function buildTimestamp(d) {
+    return `${two(d.getDate())}/${two(d.getMonth()+1)}/${String(d.getFullYear()).slice(-2)} – ${two(d.getHours())}:${two(d.getMinutes())}`;
+  }
+  document.getElementById('auth-timestamp').textContent = buildTimestamp(new Date());
+
+  // ── Carrossel ──────────────────────────────────────────────────────────────
+  const track   = document.getElementById('carousel-track');
+  const tabs    = document.querySelectorAll('.seg-tab');
+  let current   = 0;
+  const N       = 3;
+
+  function goTo(index, animate) {
+    if (animate === false) track.style.transition = 'none';
+    else track.style.transition = 'transform 0.32s cubic-bezier(0.4,0,0.2,1)';
+
+    current = Math.max(0, Math.min(N - 1, index));
+    track.style.transform = `translateX(-${current * 100}vw)`;
+
+    tabs.forEach((t, i) => t.classList.toggle('active', i === current));
+
+    // Inicia timer QR quando entra no slide 2
+    if (current === 2) startQrTimer();
+  }
+
+  // Clicar nas abas
+  tabs.forEach(t => {
+    t.addEventListener('click', () => goTo(parseInt(t.dataset.index)));
+  });
+
+  // Swipe
+  let tx = null, ty = null, dragging = false;
+  const outer = document.getElementById('carousel-outer');
+
+  outer.addEventListener('touchstart', e => {
+    tx = e.touches[0].clientX;
+    ty = e.touches[0].clientY;
+    dragging = false;
+  }, { passive: true });
+
+  outer.addEventListener('touchmove', e => {
+    if (tx === null) return;
+    const dx = e.touches[0].clientX - tx;
+    const dy = e.touches[0].clientY - ty;
+    if (!dragging && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) dragging = true;
+  }, { passive: true });
+
+  outer.addEventListener('touchend', e => {
+    if (!dragging || tx === null) { tx = null; return; }
+    const dx = e.changedTouches[0].clientX - tx;
+    if (dx < -50) goTo(current + 1);
+    else if (dx > 50) goTo(current - 1);
+    tx = null; dragging = false;
+  }, { passive: true });
+
+  // ── QR Timer (30s) ────────────────────────────────────────────────────────
+  let qrInterval = null;
+  let qrSeconds  = 30;
+
+  function startQrTimer() {
+    if (qrInterval) return; // já rodando
+    qrSeconds = 30;
+    updateQrDisplay();
+    qrInterval = setInterval(() => {
+      qrSeconds--;
+      if (qrSeconds < 0) { qrSeconds = 30; } // reinicia
+      updateQrDisplay();
+    }, 1000);
+  }
+
+  function updateQrDisplay() {
+    const fill  = document.getElementById('qr-fill');
+    const timer = document.getElementById('qr-timer');
+    if (fill)  fill.style.width  = (qrSeconds / 30 * 100) + '%';
+    if (timer) timer.textContent = `00 : ${two(qrSeconds)}`;
+  }
+
+  // ── Botão voltar ──────────────────────────────────────────────────────────
+  document.getElementById('btn-back').addEventListener('click', e => {
+    e.preventDefault();
+    if (qrInterval) clearInterval(qrInterval);
+    location.assign('index.html');
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  goTo(0, false);
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
